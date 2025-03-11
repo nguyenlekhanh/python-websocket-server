@@ -1,0 +1,51 @@
+<!-- index1.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular + Flask-SocketIO Example</title>
+
+    <!-- Include AngularJS from CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+
+    <!-- Include Socket.IO client from CDN -->
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body ng-app="myApp" ng-controller="myCtrl">
+    <div>
+        <h1>Angular + Flask-SocketIO</h1>
+        <p>{{ message }}</p>
+    </div>
+
+    <script>
+        // Define an AngularJS app
+        var app = angular.module('myApp', []);
+
+        // Define the controller for the app
+        app.controller('myCtrl', function($scope) {
+            // Initialize message to display in the view
+            $scope.message = 'Connecting...';
+
+            // Connect to the Flask server via SocketIO
+            var socket = io.connect('http://localhost:5000'); // Adjust if your server runs elsewhere
+
+            // Listen for 'connect' event from the server
+            socket.on('connect', function() {
+                console.log('Connected to server');
+                $scope.$apply(function() {
+                    $scope.message = 'Connected to Flask Server!';
+                });
+            });
+
+            // Listen for custom event from the server
+            socket.on('manager-message', function(data) {
+                console.log('Received from server:', data);
+                $scope.$apply(function() {
+                    $scope.message = data.message;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

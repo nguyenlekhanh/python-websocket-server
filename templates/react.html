@@ -1,0 +1,69 @@
+<!-- index1.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React + Flask-SocketIO Example</title>
+
+    <!-- Include React and ReactDOM from CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    
+    <!-- Include Socket.IO client from CDN -->
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    
+    <!-- Babel for JSX support in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+     <!-- Add Bootstrap CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Creating a simple React component
+        class App extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    message: 'Connecting...',
+                    socket: null
+                };
+            }
+
+            componentDidMount() {
+                // Initialize SocketIO client and connect to the Flask server
+                const socket = io.connect('http://localhost:5000'); // Ensure this matches your Flask server address
+
+                // Listen for 'connect' event from the server
+                socket.on('connect', () => {
+                    console.log('Connected to server');
+                    this.setState({ message: 'Connected to Flask Server' });
+                });
+
+                // Example of listening for a custom event from server
+                socket.on('manager-message', (data) => {
+                    console.log('Received from server:', data);
+                    this.setState({ message: data.message });
+                });
+
+                this.setState({ socket });
+            }
+
+            render() {
+                return (
+                    <div className="container">
+                        <h1 className="text-center my-4">React + Flask-SocketIO</h1>
+                        <p className="alert alert-info">{this.state.message}</p>
+                    </div>
+                );
+            }
+        }
+
+        // Rendering the React component to the DOM
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

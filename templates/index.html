@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Command Sender</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <div id="manager-error"></div>
+    <div>
+        <h1>Your Key<h1>
+        <form id="register-key" onsubmit="connectManager(); return false;">
+            <input type="text" placeholder="Enter your key" id="manager-key" name="manager-key" 
+                    required minlength="50" />
+            <label id="manager-key-generate">Press generate key to generate your key here</label>
+            <button type="button" id="generate-key">Generate key</button>
+            <button type="submit" id="connect-network">Connect</button>
+        </form>
+    </div>
+    <h1>All Connected Client IDs</h1>
+    <ul id="client-list">
+        <li>Waiting for clients...</li>
+    </ul>
+
+    <h2>Send Command to Client</h2>
+    
+    <form id="command-form">
+        <textarea rows="7" cols="70" id="miner-command-input" placeholder="Enter miner command" required></textarea>
+        <br/>
+        <label for="client-id-input">Client ID: </label>
+        <select id="client-ids" name="client-ids" required multiple>
+        </select>
+        <button type="submit">Execute</button>
+        <button type="button" id="stop-command">Stop</button>
+    </form>
+
+
+    <script>
+        var socket = io.connect('http://localhost:5000'); // Connect to the server
+
+        socket.on('connect', function() {
+            console.log("Connected to server!");
+        });
+        
+        // Function to set a cookie
+        function setCookie(name, value, days) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));  // Set expiration time
+            const expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";  // Save cookie with path "/"
+        }
+
+        function getCookie(name) {
+            const nameEq = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(nameEq) == 0) {
+                    return c.substring(nameEq.length, c.length);
+                }
+            }
+            return null;  // Return null if the cookie is not found
+        }
+
+        function deleteCookie(name) {
+            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        }
+
+        socket.on('manager-message', function(data) {
+            document.getElementById('manager-error').innerHTML = data.message;
+        });
+
+        socket.on('manager-key-success', function(data) {
+            console.log('cookie save: ' + data.managerKey);
+            setCookie("manager_key", data.managerKey, 360); 
+        });
+
+        const manager_key = getCookie("manager_key");
+
+        if(manager_key) {
+            document.getElementById('manager-key').value = manager_key;
+            document.getElementById('manager-key-generate').innerHTML = manager_key;
+        }
+
+        const timeToWait = 15;
+        var countdown = timeToWait;
+        function startCountdown() {
+            countdown = timeToWait; // Thời gian bắt đầu là timeToWait giây
+            const button = document.getElementById('connect-network'); // Lấy button với id="connect-network"
+
+            // Hàm cập nhật countdown mỗi giây
+            const timer = setInterval(function() {
+                button.textContent = `Wait for next connection: (${countdown}s)`; // Cập nhật button với thời gian còn lại
+
+                if (countdown <= 0) {
+                    clearInterval(timer); // Dừng countdown khi hết thời gian
+                    button.textContent = "Connect"; // Cập nhật lại chữ trên button khi hết countdown
+                    countdown = timeToWait;
+                } else {
+                    countdown--; // Giảm thời gian mỗi giây
+                }
+            }, 1000); // Lặp lại mỗi 1000 ms (1 giây)
+        }
+
+        // Emit the manager's key after connection (for example, during login or any other event)
+        function connectManager() {
+            const managerKey = document.getElementById('manager-key').value;  
+            
+            if(managerKey && countdown >= timeToWait) {          
+                startCountdown();
+                socket.emit('register_manager', { key: managerKey });
+                console.log("Manager key sent: ", managerKey);
+            }
+        }
+
+        const connectNetwork = document.getElementById('connect-network');
+        connectNetwork.onsubmit = function(event) {
+            event.preventDefault();
+            connectManager();
+
+            return false;
+        }
+
+        function generateUniqueKey(length = 50) {
+            // Lấy timestamp hiện tại và chuyển thành chuỗi hệ 36 (base-36)
+            const timestamp = Date.now().toString(36);
+
+            // Lấy số ngẫu nhiên mạnh từ crypto API
+            const randomValues = new Uint8Array(length); 
+            window.crypto.getRandomValues(randomValues);  // Lấy số ngẫu nhiên mạnh hơn
+
+            // Chuyển các giá trị ngẫu nhiên thành chuỗi hệ 36
+            const randomString = Array.from(randomValues)
+                                       .map(b => b.toString(36))
+                                       .join('');
+
+            // Kết hợp timestamp và chuỗi ngẫu nhiên để tạo key duy nhất
+            const key = timestamp + randomString;
+
+            // Đảm bảo độ dài khóa >= length (50 ký tự hoặc hơn)
+            //return key.substring(0, length);  // Cắt bớt nếu quá dài
+
+            //console.log(key.substring(0, length));
+            document.getElementById('manager-key').value = key.substring(0, length);
+            document.getElementById('manager-key-generate').innerHTML = key.substring(0, length);
+        }
+
+        //console.log(generateUniqueKey());  // Ví dụ: 'kxos2e16o6j39r4hg9krpzj7rwhul23u'
+
+        const generateKey = document.getElementById('generate-key');
+        generateKey.onclick = function(event) {
+            event.preventDefault();
+            generateUniqueKey();
+            return false;
+        }
+
+
+        // Example: Let's assume the manager key is 'A1' and the manager logs in
+        //let managerKey = 'A1';  // This would be dynamic in a real case, like from a form
+        //sendManagerKey(managerKey);
+
+        const clientSelect = document.getElementById('client-ids');
+
+        socket.on('client-assigned', function(data) {
+            console.log("Received client assigned data:", data);
+
+            // Create a new option element for the client
+            var newOption = document.createElement('option');
+            newOption.value = data.client_name;  // Set the value to the client name
+            newOption.text = data.client_name;   // Set the display text to the client name
+            
+            // Append the new option to the select box
+            clientSelect.appendChild(newOption);
+
+            console.log('Client added to the select box:', data.client_name);
+        });
+
+        // Handle 'client-disconnected' event from the server
+        socket.on('client-disconnected', function(data) {
+            console.log("Client disconnected:", data);
+
+            // Find and remove the client from the select box
+            var optionToRemove = document.querySelector(`option[value="${data.client_name}"]`);
+            if (optionToRemove) {
+                clientSelect.removeChild(optionToRemove);
+                console.log(`Removed client: ${data.client_name} from the select box`);
+            }
+        });
+
+        // Listen for updates on connected clients
+        socket.on('update-client-list', function(data) {
+            console.log('get update client');
+            clientSelect.innerHTML = ''; // Clear previous options
+
+            if (data.client_ids && data.client_ids.length > 0) {
+                data.client_ids.forEach(client_id => {
+                    const option = document.createElement('option');
+                    option.value = client_id;
+                    option.textContent = client_id;
+                    clientSelect.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.textContent = "No clients connected";
+                option.disabled = true;
+                clientSelect.appendChild(option);
+            }
+        });
+
+        // Fetch the list of connected client IDs from the server
+        // fetch('/get-client-ids')
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         const clientSelect = document.getElementById('client-ids');
+        //         clientSelect.innerHTML = ''; // Clear previous options
+
+        //         if (data.client_ids && data.client_ids.length > 0) {
+        //             data.client_ids.forEach(client_id => {
+        //                 const option = document.createElement('option');
+        //                 option.value = client_id;
+        //                 option.textContent = client_id;
+        //                 clientSelect.appendChild(option);
+        //             });
+        //         } else {
+        //             const option = document.createElement('option');
+        //             option.textContent = "No clients connected";
+        //             option.disabled = true;
+        //             clientSelect.appendChild(option);
+        //         }
+        //     })
+
+        // Handle the form submission to send a command to the server
+        document.getElementById('command-form').onsubmit = function(event) {
+            console.log('execute');
+            event.preventDefault();  // Prevent the form from refreshing the page
+            var minerCommand = document.getElementById('miner-command-input').value;
+            // Get all selected client IDs
+            var client_ids = Array.from(document.getElementById('client-ids').selectedOptions)
+                                   .map(option => option.value);
+
+            //console.log(client_ids);  // This will print an array of selected client IDs
+            let action = 1;
+
+            if (client_ids.length > 0 && minerCommand) {
+                // Emit the 'send-command' event to the server
+                socket.emit('send-command', {
+                    'client_ids': client_ids,
+                    'miner_command': minerCommand,
+                    'action': action  //execute
+                });
+
+                // Optionally clear the form fields after sending the command
+                // document.getElementById('miner-command-input').value = '';
+                // document.getElementById('client-ids').value = '';
+            }
+        };
+
+        document.getElementById('stop-command').onclick = function(event) {
+            console.log('stop');
+            event.preventDefault();  // Prevent the form from refreshing the page
+            var minerCommand = document.getElementById('miner-command-input').value;
+            // Get all selected client IDs
+            var client_ids = Array.from(document.getElementById('client-ids').selectedOptions)
+                                   .map(option => option.value);
+
+            //console.log(client_ids);  // This will print an array of selected client IDs
+
+            let action = 2;
+
+            if (client_ids.length > 0 && minerCommand) {
+                // Emit the 'send-command' event to the server
+                socket.emit('send-command', {
+                    'client_ids': client_ids,
+                    'miner_command': minerCommand,
+                    'action': action  //stop
+                });
+
+                // Optionally clear the form fields after sending the command
+                // document.getElementById('miner-command-input').value = '';
+                // document.getElementById('client-ids').value = '';
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Example</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Flask-SocketIO WebSocket Test</h1>
+    <button id="sendMessageBtn">Send Message</button>
+
+    <script>
+        // Log the hostname to ensure we're connecting to the correct server
+        console.log("Connecting to WebSocket server at:", window.location.hostname);
+
+        // Connect to WebSocket using WSS for secure connection (HTTPS)
+        const socket = io.connect('wss://' + "python-websocket-demo-9tdo.onrender.com");  // Use WSS (secure WebSocket)
+
+        // Event listener for button click to send message
+        document.getElementById('sendMessageBtn').onclick = function() {
+            socket.send("Hello from client!");
+        };
+
+        // Listen for messages from the server
+        socket.on('message', function(data) {
+            console.log('Received from server:', data);
+            alert("Message from server: " + data);
+        });
+    </script>
+</body>
+</html>

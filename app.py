@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, jsonify
 import eventlet
+eventlet.monkey_patch()  # Patch standard library for eventlet compatibility
+
+from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room
 from flask_cors import CORS
 from models import (
@@ -12,8 +14,6 @@ from models import (
 	)
 from config import TIMEOUT
 import time
-
-eventlet.monkey_patch()  # Patch standard library for eventlet compatibility
 
 # Initialize the Flask app and configure it
 app = Flask(__name__)

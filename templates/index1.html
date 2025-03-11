@@ -27,6 +27,10 @@
             console.log('Received from server:', data);
             alert("Message from server: " + data);
         });
+
+        socket.on('manager-message', function(data) {
+            document.getElementById('manager-error').innerHTML = data.message;
+        });
     </script>
 </body>
 </html>

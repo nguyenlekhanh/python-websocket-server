@@ -14,6 +14,8 @@ from models import (
 	)
 from config import TIMEOUT
 import time
+import os
+import socket
 
 # Initialize the Flask app and configure it
 app = Flask(__name__)
@@ -21,6 +23,14 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Initialize SocketIO with CORS support
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Check if running on localhost
+try:
+    ip_address = socket.gethostbyname(socket.gethostname())  # This is causing the error
+except socket.gaierror:
+    ip_address = "127.0.0.1"  # Fallback to localhost
+
+is_localhost = ip_address.startswith("127.") or ip_address == "localhost"
 
 @app.route('/')
 def index():
@@ -49,12 +59,10 @@ def register_manager(data):
         return
 
     manager_key = data.get('key')
-    print(f"a1")
+
     if manager_key not in managers:
-        print(f"a2")
 
         if manager_key:
-            print(f"a3")
 
             # Remove old manager key mapping if present
             if sid in sid_to_manager_key and sid_to_manager_key[sid] in managers:
@@ -95,6 +103,7 @@ def register_client(data):
     if client_key in managers:
         manager_sid = managers[client_key]
         client_manager_mapping[client_id] = manager_sid
+        print(f"Client assign: {client_id}")
         socketio.emit('client-assigned', {'client_name': f'client_{client_id}', 'manager': manager_sid, 'client_name': client_name}, room=manager_sid)
     else:
         print(f"Client {client_id} does not match any manager's key.")
@@ -125,7 +134,8 @@ def handle_command(data):
 @socketio.on('disconnect')
 def on_disconnect():
     sid = request.sid
-
+    print(f"Client disconnect: {sid}")
+    
     # Clean up client mappings
     if sid in clients:
         client_name = clients.pop(sid)
@@ -149,6 +159,12 @@ if __name__ == '__main__':
     # Print the server port for debugging
     print(f"Server running on port: {port}")
     
+
     # Run the app (bind to all available IP addresses and use the dynamic port)
-    socketio.run(app, host='0.0.0.0', port=port, ssl_context='adhoc')  # For SSL (https)
-    #socketio.run(app, host='0.0.0.0', port=5000)
+    if is_localhost:
+        print("Running on localhost")
+        socketio.run(app, host="0.0.0.0", port=5000)
+    else:
+        print("Running on a real server")
+        socketio.run(app, host="0.0.0.0", port=5000, ssl_context="adhoc")
+

@@ -22,7 +22,8 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Initialize SocketIO with CORS support
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode="threading", cors_allowed_origins="*")
+#socketio = SocketIO(app, async_mode="threading")  # avoid blocking
 
 # Check if running on localhost
 try:
@@ -135,7 +136,7 @@ def handle_command(data):
 def on_disconnect():
     sid = request.sid
     print(f"Client disconnect: {sid}")
-    
+
     # Clean up client mappings
     if sid in clients:
         client_name = clients.pop(sid)

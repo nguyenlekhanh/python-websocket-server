@@ -113,24 +113,35 @@ def register_client(data):
 def handle_command(data):
     # Extract client_ids and miner_command from the data
     client_names = data.get('client_ids', [])  # Default to empty list if not provided
+    manager_key = data.get('key', '')  # Default to empty list if not provided
 
     miner_command = data['miner_command']
 
     action = data['action']
-    print(f'action: {action}')
+    #print(f'action: {action}')
     # Handle the command for each client_id (example)
-    for client_name in client_names:
-        client_id = next((key for key, value in clients.items() if value == client_name), None)
 
-        print(f"Sending command to {client_id}: {miner_command}")
-        
-        if action == 1:
-            print(f'action: 1')
-            # Emit the command and second parameter to the specific client
-            emit('execute-command', {'miner_command': miner_command}, room=client_id)
-        elif action == 2:
-            print(f'action: 2')
-            emit('stop-command', room=client_id)
+    if manager_key:
+        valid_clients = get_clients_by_manager_key(manager_key)
+
+        matched_clients = [client for client in client_names if client in valid_clients]
+    
+        if not matched_clients:
+            print("No matching clients found.")
+            return
+
+        for client_name in matched_clients:
+            client_id = next((key for key, value in clients.items() if value == client_name), None)
+
+            print(f"Sending command to {client_id}: {miner_command}")
+            
+            if action == 1:
+                print(f'action: 1')
+                # Emit the command and second parameter to the specific client
+                emit('execute-command', {'miner_command': miner_command}, room=client_id)
+            elif action == 2:
+                print(f'action: 2')
+                emit('stop-command', room=client_id)
 
 @socketio.on('disconnect')
 def on_disconnect():

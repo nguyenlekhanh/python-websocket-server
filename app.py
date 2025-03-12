@@ -163,9 +163,7 @@ if __name__ == '__main__':
 
     # Run the app (bind to all available IP addresses and use the dynamic port)
     if is_localhost:
-        print("Running on localhost")
         socketio.run(app, host="0.0.0.0", port=5000)
     else:
-        print("Running on a real server")
         socketio.run(app, host="0.0.0.0", port=5000, ssl_context="adhoc")
 

@@ -17,6 +17,10 @@ import time
 import os
 import socket
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Initialize the Flask app and configure it
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})

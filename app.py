@@ -162,6 +162,49 @@ def on_disconnect():
         managers.pop(manager_key, None)
         active_managers.pop(sid, None)
 
+@socketio.on('server-get-client-command')
+def get_client_command(data):
+    # Extract client_ids and miner_command from the data
+    client_names = data.get('client_ids', [])  # Default to empty list if not provided
+    manager_key = data.get('key', '')  # Default to empty list if not provided
+
+    action = data['action']
+    #print(f'action: {action}')
+    # Handle the command for each client_id (example)
+
+    if manager_key:
+        valid_clients = get_clients_by_manager_key(manager_key)
+
+        matched_clients = [client for client in client_names if client in valid_clients]
+    
+        if not matched_clients:
+            print("No matching clients found.")
+            return
+
+        for client_name in matched_clients:
+            client_id = next((key for key, value in clients.items() if value == client_name), None)
+
+            if client_id:
+                emit('client-get-command', room=client_id)
+
+@socketio.on('server-response-miner-command')
+def receive_miner_command(data):
+    client_name = data.get('client_id', '')  # Default to empty list if not provided
+    client_key = data.get('client_key', '')  # Default to empty list if not provided
+    client_command = data.get('miner_command', '')  # Default to empty list if not provided
+    cpu_percent = data.get('cpu_percent', '')  # Default to empty list if not provided
+
+
+    if client_key in managers:
+        manager_sid = managers[client_key]
+        socketio.emit('client-running-command', {'client_name': client_name,
+                                         'client_command': client_command,
+                                         'cpu_percent': cpu_percent
+                                        }, room=manager_sid)
+
+
+    #print(f'Client Commnad {client_command}: {cpu_percent}')
+
 #-----------------
 
 

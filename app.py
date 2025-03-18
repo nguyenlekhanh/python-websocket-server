@@ -193,13 +193,15 @@ def receive_miner_command(data):
     client_key = data.get('client_key', '')  # Default to empty list if not provided
     client_command = data.get('miner_command', '')  # Default to empty list if not provided
     cpu_percent = data.get('cpu_percent', '')  # Default to empty list if not provided
+    cpu_temps = data.get('cpu_temps', '')  # Default to empty list if not provided
 
 
     if client_key in managers:
         manager_sid = managers[client_key]
         socketio.emit('client-running-command', {'client_name': client_name,
                                          'client_command': client_command,
-                                         'cpu_percent': cpu_percent
+                                         'cpu_percent': cpu_percent,
+                                         'cpu_temps': cpu_temps
                                         }, room=manager_sid)
 
 
